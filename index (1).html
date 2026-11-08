@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gráfico Interativo</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#172033;background:#f5f7fb}
+*{box-sizing:border-box}body{margin:0;padding:18px}.app{max-width:1050px;margin:auto;background:#fff;border:1px solid #dce2ec;border-radius:18px;padding:20px;box-shadow:0 8px 30px #1720330c}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:22px;margin:0}.nav{border:1px solid #93c5fd;border-radius:9px;padding:9px 17px;background:#dbeafe;color:#1d4ed8;font-weight:700;cursor:pointer}.nav.active{background:#2563eb;color:white}
+button,select,input,textarea{font:inherit}button{cursor:pointer}.panel{border:1px solid #dce2ec;border-radius:12px;padding:14px;margin-top:14px}.toolbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.ctrl{border:1px solid #cbd5e1;border-radius:8px;padding:9px;background:white;color:#172033}.small{border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px;background:white;color:#172033}.hidden{display:none!important}
+.chart-wrap{display:flex;gap:9px;margin-top:16px;align-items:stretch}.axis-labels{width:42px;flex:none;display:flex;flex-direction:column;justify-content:space-between;text-align:right;color:#64748b;font-size:11px;padding:0 0 30px}.plot{position:relative;flex:1;min-width:0;height:260px;border-bottom:1px solid #94a3b8}.gridlines{position:absolute;inset:0;pointer-events:none}.gridline{position:absolute;left:0;right:0;border-top:1px solid #dbe2ec}.bars{position:absolute;inset:0;display:flex;align-items:stretch;justify-content:space-around;gap:8px;padding:0 5px}.bar-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}.bar-area{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}.bar{width:min(68%,58px);min-height:5px;border-radius:5px 5px 0 0;position:relative;flex:none}.bar-info{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:11px;font-weight:700;line-height:1.3;color:#172033}.bar-name{position:absolute;top:calc(100% + 7px);width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#334155}
+.vote-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #edf0f5}.vote-name{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;color:#172033}.swatch{width:13px;height:13px;border-radius:4px;flex:none}.vote-btn{width:36px;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:20px}.edit-btn{border:1px solid #cbd5e1;border-radius:8px;background:white;padding:7px 10px}.form-grid{display:grid;grid-template-columns:1fr;gap:12px}.field{display:grid;gap:6px}.field input{width:100%}.help-card{display:flex;gap:14px;align-items:center;border:1px solid #dce2ec;border-radius:10px;padding:12px;margin-top:10px}.mini-chart{height:76px;flex:1;display:flex;align-items:flex-end;justify-content:space-around;gap:6px;border-left:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1;padding:0 7px}.mini-bar{width:20%;border-radius:3px 3px 0 0}.muted{color:#64748b;font-size:13px}.color-input{width:100%;height:42px;padding:3px}
+@media(max-width:520px){body{padding:8px}.app{padding:13px}.axis-labels{width:34px;font-size:10px}.bars{gap:3px;padding:0 2px}.bar{width:75%}.bar-info{font-size:10px}.bar-name{font-size:9px}.vote-row{gap:5px}.vote-btn{width:32px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>Gráfico interativo</h1><div><button class="nav" id="editNav">Editar</button> <button class="nav" id="iaNav">IA</button></div></header>
+<section id="home">
+<div class="panel toolbar">
+<label>Escala Y
+<select id="yStep" class="ctrl"><option value="1">1 em 1</option><option value="5" selected>5 em 5</option><option value="10">10 em 10</option><option value="20">20 em 20</option></select>
+</label>
+<label>Espaçamento X
+<select id="xSpace" class="ctrl"><option value="3">Compacto</option><option value="8" selected>Normal</option><option value="15">Espaçado</option></select>
+</label>
+</div>
+<div class="panel"><strong>Comparação de votos</strong><div class="chart-wrap"><div id="axisLabels" class="axis-labels"></div><div id="plot" class="plot"><div id="gridlines" class="gridlines"></div><div id="bars" class="bars"></div></div></div></div>
+<div class="panel" id="votingPanel"><div class="toolbar" style="justify-content:space-between"><strong>Votação</strong><button id="hideVoting" class="small">Ocultar votação</button></div><div id="voteList"></div><div class="toolbar" style="margin-top:12px"><input id="newName" class="ctrl" style="flex:1;min-width:150px" placeholder="Nome da nova barra"><button id="addBar" class="small">＋ Adicionar barra</button></div></div>
+<button id="showVoting" class="small hidden" style="margin-top:14px">Mostrar votação</button>
+</section>
+<section id="editPanel" class="panel hidden">
+<div class="toolbar" style="justify-content:space-between"><strong>Editar gráfico</strong><button class="small closePanel">✕</button></div>
+<div class="form-grid" style="margin-top:14px">
+<label class="field">Escolha a barra<select id="editSelect" class="ctrl"></select></label>
+<label class="field">Nome<input id="editName" class="ctrl" placeholder="Nome da barra"></label>
+<label class="field">Cor<input id="editColor" type="color" class="ctrl color-input"></label>
+<div class="toolbar"><button id="saveEdit" class="nav active">Salvar alterações</button><button id="deleteBar" class="small">Excluir barra</button></div>
+</div></section>
+<section id="iaPanel" class="panel hidden">
+<div class="toolbar" style="justify-content:space-between"><strong>IA</strong><button class="small closePanel">✕</button></div>
+<div class="toolbar" style="margin:14px 0"><button class="small iaTab" data-tab="pedido">Pedido</button><button class="small iaTab" data-tab="imagem">Imagem</button><button class="small iaTab" data-tab="ajuda">Ajuda</button></div>
+<div id="tab-pedido"><p>Descreva o que gostaria de mudar no gráfico.</p><textarea id="iaRequest" class="ctrl" style="width:100%" rows="3" placeholder="Ex.: sugira nomes para as barras..."></textarea><p class="muted">Esta área organiza seu pedido; não envia comandos a um serviço externo de IA.</p></div>
+<div id="tab-imagem" class="hidden"><label class="field">Barra que receberá a imagem<select id="imageSelect" class="ctrl"></select></label><label class="field" style="margin-top:10px">Endereço direto da imagem<input id="imageUrl" class="ctrl" placeholder="https://..."></label><div class="toolbar" style="margin-top:10px"><button id="applyImage" class="small">Aplicar imagem</button><button id="searchImage" class="small">Buscar imagens na internet</button></div><p id="imageMessage" class="muted"></p></div>
+<div id="tab-ajuda" class="hidden">
+<strong>Ajuda ilustrativa</strong>
+<div class="help-card"><div class="mini-chart"><div class="mini-bar" style="height:35%;background:#3b82f6"></div><div class="mini-bar" style="height:65%;background:#ef4444"></div><div class="mini-bar" style="height:90%;background:#22c55e"></div></div><div style="flex:1"><strong>1. Ler o gráfico</strong><p class="muted">As linhas horizontais ajudam a comparar os valores de cada barra.</p></div></div>
+<div class="help-card"><div style="display:flex;gap:5px"><span class="vote-btn">−</span><span class="vote-btn">+</span></div><div style="flex:1"><strong>2. Votar</strong><p class="muted">Use + para adicionar um voto e − para retirar um voto.</p></div></div>
+<div class="help-card"><div style="display:flex;gap:7px"><span class="swatch" style="width:25px;height:25px;background:#3b82f6"></span><span class="swatch" style="width:25px;height:25px;background:#ef4444"></span></div><div style="flex:1"><strong>3. Personalizar</strong><p class="muted">Em Editar, escolha uma barra e altere seu nome ou sua cor.</p></div></div>
+<div class="help-card"><div style="min-width:85px;font-size:12px;line-height:2">10<br>5<br>0</div><div style="flex:1"><strong>4. Ajustar a escala</strong><p class="muted">Escolha intervalos de 1, 5, 10 ou 20. A escala X ajusta o espaço entre as barras.</p></div></div>
+</div>
+</section>
+</div>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+let bars=[{name:'Opção 1',votes:0,color:'#2563eb',image:''},{name:'Opção 2',votes:0,color:'#e23b3b',image:''},{name:'Opção 3',votes:0,color:'#159957',image:''}];
+let active='home',votingVisible=true;
+const palette=['#f59e0b','#9333ea','#0891b2','#db2777','#65a30d','#ea580c','#475569'];
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setPanel(name){active=name;$('home').classList.toggle('hidden',name!=='home');$('editPanel').classList.toggle('hidden',name!=='edit');$('iaPanel').classList.toggle('hidden',name!=='ia');$('editNav').classList.toggle('active',name==='edit');$('iaNav').classList.toggle('active',name==='ia');if(name==='edit'){fillSelects();fillEdit()}if(name==='ia')fillSelects()}
+function fillSelects(){['editSelect','imageSelect'].forEach(id=>{let old=Number($(id).value)||0;$(id).innerHTML=bars.map((b,i)=>`<option value="${i}">${escapeHTML(b.name)}</option>`).join('');if(bars.length)$(id).value=Math.min(old,bars.length-1)})}
+function fillEdit(){if(!bars.length)return;let b=bars[Number($('editSelect').value)||0];$('editName').value=b.name;$('editColor').value=b.color}
+function render(){
+ const step=Number($('yStep').value)||1,max=Math.max(0,...bars.map(b=>b.votes));
+ const top=Math.max(step,Math.ceil(max/step)*step);
+ // One-unit labels have a fixed minimum vertical separation; chart height grows to prevent collisions.
+ const tickCount=Math.round(top/step),plotHeight=Math.max(260,tickCount*27);
+ $('plot').style.height=plotHeight+'px';
+ $('axisLabels').style.height=plotHeight+'px';
+ $('axisLabels').style.paddingBottom='30px';
+ $('gridlines').innerHTML='';$('axisLabels').innerHTML='';$('bars').innerHTML='';
+ for(let n=tickCount;n>=0;n--){
+   const value=n*step,label=document.createElement('div');label.textContent=String(value);$('axisLabels').appendChild(label);
+   if(n>0){const line=document.createElement('div');line.className='gridline';line.style.top=(100-n/tickCount*100)+'%';$('gridlines').appendChild(line)}
+ }
+ $('bars').style.gap=$('xSpace').value+'px';
+ const total=bars.reduce((s,b)=>s+b.votes,0);
+ bars.forEach(b=>{
+   const col=document.createElement('div');col.className='bar-col';
+   const area=document.createElement('div');area.className='bar-area';
+   const bar=document.createElement('div');bar.className='bar';
+   // A small visible color swatch remains even when the value is zero.
+   bar.style.height=(b.votes===0?'5px':Math.max(5,b.votes/top*plotHeight)+'px');
+   bar.style.backgroundColor=b.color;
+   if(b.image){bar.style.backgroundImage=`url("${b.image.replace(/"/g,'%22')}")`;bar.style.backgroundSize='cover';bar.style.backgroundPosition='center'}
+   const info=document.createElement('div');info.className='bar-info';info.innerHTML=`${total?Math.round(b.votes/total*100):0}%<br>${b.votes}`;
+   bar.appendChild(info);area.appendChild(bar);col.appendChild(area);
+   const name=document.createElement('button');name.className='bar-name';name.textContent=b.name;name.title='Clique para editar o nome';name.style.border='0';name.style.background='transparent';name.style.cursor='pointer';
+   name.addEventListener('click',()=>{const idx=bars.indexOf(b);$('editSelect').value=idx;setPanel('edit')});col.appendChild(name);$('bars').appendChild(col);
+ });
+ $('voteList').innerHTML='';
+ bars.forEach((b,i)=>{const row=document.createElement('div');row.className='vote-row';row.innerHTML=`<span class="swatch" style="background:${b.color}"></span><button class="vote-name" data-rename="${i}">${escapeHTML(b.name)} <span class="muted">(${b.votes})</span></button><button class="vote-btn" data-minus="${i}" aria-label="Diminuir">−</button><button class="vote-btn" data-plus="${i}" aria-label="Adicionar">+</button><button class="edit-btn" data-edit="${i}" aria-label="Editar">✎</button>`;$('voteList').appendChild(row)});
+ fillSelects();
+}
+$('editNav').onclick=()=>setPanel('edit');$('iaNav').onclick=()=>setPanel('ia');document.querySelectorAll('.closePanel').forEach(b=>b.onclick=()=>setPanel('home'));
+$('yStep').onchange=render;$('xSpace').onchange=render;
+$('hideVoting').onclick=()=>{votingVisible=false;$('votingPanel').classList.add('hidden');$('showVoting').classList.remove('hidden')};
+$('showVoting').onclick=()=>{votingVisible=true;$('votingPanel').classList.remove('hidden');$('showVoting').classList.add('hidden')};
+$('addBar').onclick=()=>{const name=$('newName').value.trim()||`Opção ${bars.length+1}`;bars.push({name,votes:0,color:palette[(bars.length-3+palette.length)%palette.length],image:''});$('newName').value='';render()};
+$('voteList').addEventListener('click',e=>{const p=e.target.closest('[data-plus]'),m=e.target.closest('[data-minus]'),ed=e.target.closest('[data-edit]'),rn=e.target.closest('[data-rename]');if(p){bars[+p.dataset.plus].votes++;render()}else if(m){const b=bars[+m.dataset.minus];b.votes=Math.max(0,b.votes-1);render()}else if(ed){$('editSelect').value=ed.dataset.edit;setPanel('edit')}else if(rn){const i=+rn.dataset.rename;const name=prompt('Novo nome da barra:',bars[i].name);if(name&&name.trim()){bars[i].name=name.trim();render()}}});
+$('editSelect').onchange=fillEdit;$('saveEdit').onclick=()=>{if(!bars.length)return;const b=bars[+$('editSelect').value];b.name=$('editName').value.trim()||b.name;b.color=$('editColor').value;render();setPanel('home')};
+$('deleteBar').onclick=()=>{if(!bars.length)return;bars.splice(+$('editSelect').value,1);render();setPanel(bars.length?'edit':'home')};
+document.querySelectorAll('.iaTab').forEach(btn=>btn.onclick=()=>{['pedido','imagem','ajuda'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==btn.dataset.tab));document.querySelectorAll('.iaTab').forEach(x=>x.classList.toggle('active',x===btn))});
+$('applyImage').onclick=()=>{const i=+$('imageSelect').value,url=$('imageUrl').value.trim();if(bars[i]&&/^https?:\/\//i.test(url)){bars[i].image=url;$('imageMessage').textContent='Imagem aplicada à barra selecionada.';render()}else $('imageMessage').textContent='Insira um endereço de imagem válido começando com http:// ou https://.'};
+$('searchImage').onclick=()=>{const name=bars[+$('imageSelect').value]?.name||'imagem';window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(name),'_blank','noopener')};
+render();setPanel('home');
+})();
+</script>
+</body></html>
